@@ -11,7 +11,6 @@ import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.IBinder
-import android.os.Parcelable
 import android.provider.MediaStore
 import androidx.core.content.getSystemService
 import androidx.window.layout.WindowMetricsCalculator
@@ -22,22 +21,15 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.parcelize.Parcelize
 import java.io.File
 import java.io.FileInputStream
 
-@Parcelize
-data class ScreenRecordConfig(
-    val resultCode: Int,
-    val data: Intent
-): Parcelable
-
-class ScreenRecordService: Service() {
+class ScreenRecordService : Service() {
 
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private val mediaRecorder by lazy {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(applicationContext)
         } else {
             MediaRecorder()
@@ -68,7 +60,7 @@ class ScreenRecordService: Service() {
                 put(MediaStore.Video.Media.DISPLAY_NAME, "video_${System.currentTimeMillis()}.mp4")
                 put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/Recordings2")
             }
-            val videoCollection = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val videoCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             } else {
                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI
@@ -85,21 +77,18 @@ class ScreenRecordService: Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when(intent?.action) {
+        when (intent?.action) {
             START_RECORDING -> {
-                val notification = NotificationHelper.createNotification(applicationContext)
                 NotificationHelper.createNotificationChannel(applicationContext)
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val notification = NotificationHelper.createNotification(applicationContext)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     startForeground(
                         1,
                         notification,
                         ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
                     )
                 } else {
-                    startForeground(
-                        1,
-                        notification
-                    )
+                    startForeground(1, notification)
                 }
                 _isServiceRunning.value = true
                 startRecording(intent)
@@ -112,22 +101,17 @@ class ScreenRecordService: Service() {
     }
 
     private fun startRecording(intent: Intent) {
-        val config = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(
-                KEY_RECORDING_CONFIG,
-                ScreenRecordConfig::class.java
-            )
+        val config = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(KEY_RECORDING_CONFIG, ScreenRecordConfig::class.java)
         } else {
-            intent.getParcelableExtra(KEY_RECORDING_CONFIG,)
-        }
-        if(config == null) {
-            return
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(KEY_RECORDING_CONFIG)
         }
 
-        mediaProjection = mediaProjectionManager?.getMediaProjection(
-            config.resultCode,
-            config.data
-        )
+        if (config == null) {
+            return
+        }
+        mediaProjection = mediaProjectionManager?.getMediaProjection(config.resultCode, config.data)
         mediaProjection?.registerCallback(mediaProjectionCallback, null)
 
         initializeRecorder()
@@ -137,7 +121,11 @@ class ScreenRecordService: Service() {
     }
 
     private fun stopRecording() {
-        mediaRecorder.stop()
+        try {
+            mediaRecorder.stop()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         mediaProjection?.stop()
         mediaRecorder.reset()
     }
@@ -164,7 +152,7 @@ class ScreenRecordService: Service() {
         var newWidth = (maxWidth * scaleFactor).toInt()
         var newHeight = (newWidth / aspectRatio).toInt()
 
-        if(newHeight > (maxHeight * scaleFactor)) {
+        if (newHeight > (maxHeight * scaleFactor)) {
             newHeight = (maxHeight * scaleFactor).toInt()
             newWidth = (newHeight * aspectRatio).toInt()
         }
@@ -174,11 +162,9 @@ class ScreenRecordService: Service() {
 
     private fun initializeRecorder() {
         val (width, height) = getWindowSize()
-        val (scaledWidth, scaledHeight) = getScaledDimensions(
-            maxWidth = width,
-            maxHeight = height
-        )
-        with(mediaRecorder) {
+        val (scaledWidth, scaledHeight) = getScaledDimensions(width, height)
+
+        mediaRecorder.apply {
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
             setOutputFile(outputFile)
