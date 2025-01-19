@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 data class Recording(
     val uri: Uri,
     val displayName: String,
-    val size: Long
+    val size: Long,
+    val dateAdded: Long
 )
 
 class RecordingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -23,14 +24,15 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
     private val _recordings = MutableStateFlow<List<Recording>>(emptyList())
     val recordings = _recordings.asStateFlow()
 
-
     fun loadRecordings() {
         viewModelScope.launch {
             val loaded = mutableListOf<Recording>()
+
             val projection = arrayOf(
                 MediaStore.Video.Media._ID,
                 MediaStore.Video.Media.DISPLAY_NAME,
                 MediaStore.Video.Media.SIZE,
+                MediaStore.Video.Media.DATE_ADDED,
                 MediaStore.Video.Media.RELATIVE_PATH
             )
             val selection = "${MediaStore.Video.Media.RELATIVE_PATH} LIKE ?"
@@ -47,11 +49,13 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
                 val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
                 val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
                 val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+                val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idCol)
                     val displayName = cursor.getString(nameCol)
                     val size = cursor.getLong(sizeCol)
+                    val dateAdded = cursor.getLong(dateCol)
 
                     val contentUri = ContentUris.withAppendedId(
                         MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
@@ -62,7 +66,8 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
                         Recording(
                             uri = contentUri,
                             displayName = displayName,
-                            size = size
+                            size = size,
+                            dateAdded = dateAdded
                         )
                     )
                 }
@@ -70,7 +75,6 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
             _recordings.value = loaded
         }
     }
-
 
     fun deleteRecording(recording: Recording) {
         viewModelScope.launch {
@@ -82,7 +86,6 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
             loadRecordings()
         }
     }
-
 
     fun renameRecording(recording: Recording, newName: String) {
         viewModelScope.launch {
@@ -99,13 +102,26 @@ class RecordingsViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-fun playRecording(recording: Recording) {
-val context = getApplication<Application>().applicationContext
-val playIntent = Intent(Intent.ACTION_VIEW).apply {
-setDataAndType(recording.uri, "video/*")
-addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-}
-context.startActivity(playIntent)
-}
+    fun playRecording(recording: Recording) {
+        val context = getApplication<Application>().applicationContext
+        val playIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(recording.uri, "video/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(playIntent)
+    }
+
+    fun shareRecording(recording: Recording) {
+        val context = getApplication<Application>().applicationContext
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "video/*"
+            putExtra(Intent.EXTRA_STREAM, recording.uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        // Use a chooser so user can pick the sharing app
+        val chooser = Intent.createChooser(shareIntent, "Share recording via")
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(chooser)
+    }
 }

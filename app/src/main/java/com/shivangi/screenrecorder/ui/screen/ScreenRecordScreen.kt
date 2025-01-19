@@ -2,6 +2,7 @@ package com.shivangi.screenrecorder.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -54,8 +55,10 @@ fun ScreenRecordScreen(
                         containerColor = if (isRecording) CoralRed else MintGreen
                     )
                 ) {
+                    // Show Stop icon if recording, else FiberManualRecord icon
+                    val icon = if (isRecording) Icons.Filled.Check else Icons.Filled.PlayArrow
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
+                        imageVector = icon,
                         contentDescription = null,
                         tint = Color.Black
                     )
