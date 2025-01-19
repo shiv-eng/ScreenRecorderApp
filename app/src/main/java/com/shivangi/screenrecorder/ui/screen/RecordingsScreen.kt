@@ -4,6 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,6 +27,7 @@ fun RecordingsScreen(
     var recordingToRename by remember { mutableStateOf<Recording?>(null) }
     var newName by remember { mutableStateOf("") }
 
+    // Rename dialog
     if (showRenameDialog && recordingToRename != null) {
         AlertDialog(
             onDismissRequest = {
@@ -38,19 +42,21 @@ fun RecordingsScreen(
                 )
             },
             confirmButton = {
-                Button(onClick = {
-                    val r = recordingToRename ?: return@Button
-                    if (newName.isNotBlank()) {
-                        recordingsViewModel.renameRecording(r, ensureMp4(newName))
+                Button(
+                    onClick = {
+                        val r = recordingToRename ?: return@Button
+                        if (newName.isNotBlank()) {
+                            recordingsViewModel.renameRecording(r, ensureMp4(newName))
+                        }
+                        showRenameDialog = false
+                        newName = ""
                     }
-                    showRenameDialog = false
-                    newName = ""
-                }) {
+                ) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                Button(onClick = {
+                TextButton(onClick = {
                     showRenameDialog = false
                     newName = ""
                 }) {
@@ -60,16 +66,21 @@ fun RecordingsScreen(
         )
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(8.dp)
+    ) {
         items(recordings) { rec ->
-            RecordingItem(
+            RecordingCard(
                 recording = rec,
                 onPlay = { recordingsViewModel.playRecording(rec) },
-                onDelete = { recordingsViewModel.deleteRecording(rec) },
                 onRename = {
                     recordingToRename = rec
                     newName = rec.displayName
                     showRenameDialog = true
+                },
+                onDelete = {
+                    recordingsViewModel.deleteRecording(rec)
                 }
             )
         }
@@ -77,17 +88,18 @@ fun RecordingsScreen(
 }
 
 @Composable
-fun RecordingItem(
+fun RecordingCard(
     recording: Recording,
     onPlay: () -> Unit,
-    onDelete: () -> Unit,
-    onRename: () -> Unit
+    onRename: () -> Unit,
+    onDelete: () -> Unit
 ) {
-    Surface(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onPlay() },
-        tonalElevation = 2.dp
+            .padding(vertical = 4.dp)
+            .clickable { onPlay() }
+
     ) {
         Row(
             modifier = Modifier
@@ -98,29 +110,35 @@ fun RecordingItem(
             Column {
                 Text(
                     text = recording.displayName,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${recording.size / 1024} KB",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
             }
             Row {
-                TextButton(onClick = { onRename() }) {
-                    Text("Rename")
+                IconButton(onClick = onRename) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Rename"
+                    )
                 }
-                TextButton(onClick = { onDelete() }) {
-                    Text("Delete")
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete"
+                    )
                 }
             }
         }
     }
 }
 
-/** Ensure .mp4 suffix. */
 private fun ensureMp4(name: String): String {
     return if (name.endsWith(".mp4", ignoreCase = true)) name else "$name.mp4"
 }

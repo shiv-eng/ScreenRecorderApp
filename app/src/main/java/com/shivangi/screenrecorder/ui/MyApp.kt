@@ -6,13 +6,13 @@ import android.media.projection.MediaProjectionManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+  import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +26,7 @@ import com.shivangi.screenrecorder.ui.screen.ScreenRecordScreen
 import com.shivangi.screenrecorder.viewmodel.RecordingsViewModel
 import com.shivangi.screenrecorder.viewmodel.ScreenRecordViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyApp() {
     val context = LocalContext.current
@@ -49,12 +50,12 @@ fun MyApp() {
         )
     }
 
-    // 1) The system manager for screen capture (must appear before we use it)
+    // 1) The system manager for screen capture
     val mediaProjectionManager = remember {
         context.getSystemService<MediaProjectionManager>()
     }
 
-    // 2) The actual launcher for the system "Allow" screen-capture prompt
+    // 2) Launcher for the system "Allow" screen-capture prompt
     val screenCaptureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -67,7 +68,7 @@ fun MyApp() {
         screenRecordViewModel.startRecording(context, config)
     }
 
-    // 3) Launcher for POST_NOTIFICATIONS permission (needs mediaProjectionManager in scope)
+    // 3) Launcher for POST_NOTIFICATIONS permission
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -79,26 +80,40 @@ fun MyApp() {
         }
     }
 
-    // Keep track of which tab is selected
+    // Track which tab is selected
     var selectedTabIndex by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 },
-                    text = { Text("Screen Record") }
-                )
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = {
-                        selectedTabIndex = 1
-                        // Reload recordings whenever we switch to second tab
-                        recordingsViewModel.loadRecordings()
+            // A Column that stacks an App Bar with Tab Row
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(text = "Screen Recorder")
                     },
-                    text = { Text("Recordings") }
+                    navigationIcon = {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "App Icon"
+                        )
+                    }
                 )
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        text = { Text("Screen Record") }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = {
+                            selectedTabIndex = 1
+                            // Reload recordings when switching to second tab
+                            recordingsViewModel.loadRecordings()
+                        },
+                        text = { Text("Recordings") }
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -125,7 +140,9 @@ fun MyApp() {
                         screenRecordViewModel.stopRecording(context)
                     }
                 )
-                1 -> RecordingsScreen(recordingsViewModel = recordingsViewModel)
+                1 -> RecordingsScreen(
+                    recordingsViewModel = recordingsViewModel
+                )
             }
         }
     }
