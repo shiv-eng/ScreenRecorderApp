@@ -13,12 +13,8 @@ Ensure that the necessary permissions are enabled for screen recording:
 * [Android Architecture Components](https://developer.android.com/topic/architecture)
     * [Navigation](https://developer.android.com/guide/navigation)
     * [ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel)
-    * [LiveData](https://developer.android.com/topic/libraries/architecture/livedata)
 * [Jetpack Compose](https://developer.android.com/jetpack/compose)
-* [Hilt (Dependency Injection)](https://developer.android.com/training/dependency-injection/hilt-android)
-* [Room Database](https://developer.android.com/training/data-storage/room)
 * [Media Projection API](https://developer.android.com/reference/android/media/projection/MediaProjectionManager)
-* [Coroutines](https://developer.android.com/kotlin/coroutines)
 * [Material3 UI Components](https://m3.material.io/)
 
 ## Outputs 🖼
